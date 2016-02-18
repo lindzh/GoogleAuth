@@ -30,7 +30,7 @@
 
 package com.warrenstrange.googleauth;
 
-import org.apache.http.client.utils.URIBuilder;
+//import org.apache.http.client.utils.URIBuilder;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -154,32 +154,33 @@ public final class GoogleAuthenticatorQRGenerator {
     public static String getOtpAuthTotpURL(String issuer,
                                            String accountName,
                                            GoogleAuthenticatorKey credentials) {
-        
-        URIBuilder uri = new URIBuilder()
-            .setScheme("otpauth")
-            .setHost("totp")
-            .setPath("/" + formatLabel(issuer, accountName))
-            .setParameter("secret", credentials.getKey());
-
-
-        if (issuer != null) {
-            if (issuer.contains(":")) {
-                throw new IllegalArgumentException("Issuer cannot contain the \':\' character.");
-            }
-
-            uri.setParameter("issuer", issuer);
-        }
-        
-        /*
-            The following parameters aren't needed since they are all defaults.
-            We can exclude them to make the URI shorter.
-         */
-        // uri.setParameter("algorithm", "SHA1");
-        // uri.setParameter("digits", "6");
-        // uri.setParameter("period", "30");
-        
-        return uri.toString();
-
+		if (issuer != null) {
+			if (issuer.contains(":")) {
+				throw new IllegalArgumentException("Issuer cannot contain the \':\' character.");
+			}
+		}else{
+			throw new IllegalArgumentException("Issuer can't be null");
+		}
+		if(accountName==null){
+			throw new IllegalArgumentException("AccountName can't be null");
+		}
+		
+		//otpauth://totp/leili:lindezhi@aidaojia.com?secret=A6K7FTQ2WBAK3ZZN&issuer=leili
+    	StringBuilder builder = new StringBuilder();
+    	builder.append("otpauth://totp");
+    	builder.append("/" + formatLabel(issuer, accountName));
+    	builder.append("?secret=");
+    	builder.append(urlEncode(credentials.getKey()));
+    	builder.append("&issuer=");
+    	builder.append(urlEncode(issuer));
+    	return builder.toString();
     }
     
+    private static String urlEncode(String value){
+    	try {
+			return URLEncoder.encode(value, "utf-8");
+		} catch (UnsupportedEncodingException e) {
+			throw new IllegalArgumentException("UnsupportedEncoding utf-8");
+		}
+    }
 }

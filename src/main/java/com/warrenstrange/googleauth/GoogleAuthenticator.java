@@ -35,6 +35,7 @@ import org.apache.commons.codec.binary.Base64;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -88,6 +89,11 @@ public final class GoogleAuthenticator implements IGoogleAuthenticator {
      * @since 0.5.0
      */
     public static final String RNG_ALGORITHM_PROVIDER = "com.warrenstrange.googleauth.rng.algorithmProvider";
+    
+    /**
+     * 
+     */
+    public static final String CREDENTIAL_REPOSITORY_PROVIDER = "com.warrenstrange.googleauth.ICredentialRepository";
 
     /**
      * The logger for this class.
@@ -513,7 +519,7 @@ public final class GoogleAuthenticator implements IGoogleAuthenticator {
      *                                                 found.
      */
     private ICredentialRepository getValidCredentialRepository() {
-        ICredentialRepository repository = getCredentialRepository();
+        ICredentialRepository repository = this.doGetCredentialRepository();
 
         if (repository == null) {
             throw new UnsupportedOperationException(
@@ -526,6 +532,31 @@ public final class GoogleAuthenticator implements IGoogleAuthenticator {
 
         return repository;
     }
+    
+    /**
+     * 实现可以配置credential repo
+     * @return
+     */
+    private ICredentialRepository doGetCredentialRepository(){
+    	String credentialClassName = System.getProperty(CREDENTIAL_REPOSITORY_PROVIDER);
+    	if(credentialClassName!=null){
+        	try {
+    			Class<?> credentialClass = Class.forName(credentialClassName);
+    			try {
+    				return (ICredentialRepository)credentialClass.newInstance();
+    			} catch (InstantiationException e) {
+    				 throw new IllegalArgumentException("init ICredentialRepository class failed constructor:"+credentialClassName);
+    			} catch (IllegalAccessException e) {
+    				 throw new IllegalArgumentException("init ICredentialRepository class failed constructor:"+credentialClassName);
+    			}
+    		} catch (ClassNotFoundException e) {
+    			 throw new IllegalArgumentException("can't find credential class:"+credentialClassName);
+    		}
+    	}else{
+    		return this.loadGetCredentialRepository();
+    	}
+
+    }
 
     /**
      * This method loads the first available ICredentialRepository
@@ -534,7 +565,7 @@ public final class GoogleAuthenticator implements IGoogleAuthenticator {
      * @return the first registered ICredentialRepository or <code>null</code>
      * if none is found.
      */
-    private ICredentialRepository getCredentialRepository() {
+    private ICredentialRepository loadGetCredentialRepository() {
         ServiceLoader<ICredentialRepository> loader =
                 ServiceLoader.load(ICredentialRepository.class);
 
@@ -542,7 +573,6 @@ public final class GoogleAuthenticator implements IGoogleAuthenticator {
         for (ICredentialRepository repository : loader) {
             return repository;
         }
-
         return null;
     }
 }
